@@ -2,14 +2,14 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ] # Ensure this matches your default branch name
+    branches: [ main ] # Change this if your default branch is 'master'
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4 # Uses Node 20/24 compatible version
+      - uses: actions/checkout@v4
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
@@ -20,8 +20,9 @@ jobs:
         run: flutter pub get
 
       - name: Build Web
-        # Replace 'my_portfolio' with your actual repository name
-        run: flutter build web --release --base-href "/my_portfolio/" --web-renderer canvaskit
+        # Removed --web-renderer as it is no longer a valid CLI flag in newer Flutter versions.
+        # Flutter now handles this automatically or via the bootstrap script.
+        run: flutter build web --release --base-href "/my_portfolio/"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
