@@ -1,11 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are deploying to GitHub Pages at https://<user>.github.io/<repo>/,
-    change the base href below to: <base href="/my_portfolio/">
-  -->
-  <base href="/">
+  <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
@@ -25,7 +21,7 @@
 
   <style>
     body {
-      background-color: #0F2027; /* Matches your app's theme background */
+      background-color: #0F2027;
       margin: 0;
       padding: 0;
       display: flex;
@@ -40,7 +36,6 @@
   </style>
 </head>
 <body>
-  <div class="loading">Loading Portfolio...</div>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
