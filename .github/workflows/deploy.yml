@@ -21,7 +21,7 @@ jobs:
 
       - name: Build Web
         # Added --web-renderer html for better compatibility and faster loading
-        run: flutter build web --release --base-href "/portfolio/" --web-renderer html
+        run: flutter build web --release --base-href "/portfolio/"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
