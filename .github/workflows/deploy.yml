@@ -20,9 +20,8 @@ jobs:
         run: flutter pub get
 
       - name: Build Web
-        # Removed --web-renderer as it is no longer a valid CLI flag in newer Flutter versions.
-        # Flutter now handles this automatically or via the bootstrap script.
-        run: flutter build web --release --base-href "/my_portfolio/"
+        # Added --web-renderer html for better compatibility and faster loading
+        run: flutter build web --release --base-href "/portfolio/" --web-renderer html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

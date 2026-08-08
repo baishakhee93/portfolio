@@ -3,9 +3,9 @@
 <head>
   <!--
     If you are deploying to GitHub Pages at https://<user>.github.io/<repo>/,
-    change the base href below to: <base href="/my_portfolio/">
+    change the base href below to: <base href="/portfolio/">
   -->
-  <base href="/">
+  <base href="/portfolio/">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
@@ -41,6 +41,21 @@
 </head>
 <body>
   <div class="loading">Loading Portfolio...</div>
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: "1656845050",
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp();
+          });
+        }
+      });
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
