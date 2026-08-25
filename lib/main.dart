@@ -7,8 +7,7 @@ import 'views/home_page.dart';
 
 void main() {
   // Removes the '#' from the URL for a cleaner look on web
-  // Note: Disabled for GitHub Pages stability. If you want it back, you need a 404.html redirect.
-  // usePathUrlStrategy();
+  usePathUrlStrategy();
 
   runApp(
     MultiProvider(

@@ -26,7 +26,7 @@ class GlassContainer extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
-          width: width,
+          width: width ?? double.infinity,
           height: height, // Now it can be null to wrap content
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(borderRadius),

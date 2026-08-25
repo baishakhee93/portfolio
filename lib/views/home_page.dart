@@ -1,11 +1,8 @@
 import 'dart:math';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../models/project_model.dart';
 import '../view_models/portfolio_view_model.dart';
 import '../widgets/glass_container.dart';
 
@@ -19,7 +16,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey _heroKey = GlobalKey();
   final GlobalKey _aboutKey = GlobalKey();
   final GlobalKey _skillsKey = GlobalKey();
@@ -30,77 +26,6 @@ class _HomePageState extends State<HomePage>
   final GlobalKey _contactKey = GlobalKey();
 
   AnimationController? _bubbleController;
-  bool _showBackToTop = false;
-  Offset? _mousePos;
-
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _messageController = TextEditingController();
-
-  Future<void> _sendEmail(String recipientEmail) async {
-    final String name = _nameController.text.trim();
-    final String email = _emailController.text.trim();
-    final String message = _messageController.text.trim();
-
-    if (name.isEmpty || email.isEmpty || message.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill in all required fields")),
-      );
-      return;
-    }
-
-    // --- EMAILJS CONFIGURATION ---
-    // TODO: Replace these with your actual keys from EmailJS
-    const String serviceId = 'service_xn74yg4';
-    const String templateId = 'template_hn56pro';
-    const String publicKey = 'fT-o2O7tghORxtwJ7';
-
-    final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
-
-    // Show loading indicator
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Sending message...")));
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'service_id': serviceId,
-          'template_id': templateId,
-          'user_id': publicKey,
-          'template_params': {
-            'from_name': name,
-            'from_email': email,
-            'message': message,
-          },
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        _nameController.clear();
-        _emailController.clear();
-        _messageController.clear();
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Message sent successfully!"),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        // This will show the specific error from EmailJS (e.g. "The user_id is invalid")
-        throw 'Failed: ${response.body}';
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
-      );
-    }
-  }
 
   @override
   void initState() {
@@ -109,21 +34,12 @@ class _HomePageState extends State<HomePage>
       duration: const Duration(seconds: 25),
       vsync: this,
     )..repeat();
-
-    _scrollController.addListener(() {
-      setState(() {
-        _showBackToTop = _scrollController.offset > 300;
-      });
-    });
   }
 
   @override
   void dispose() {
     _bubbleController?.dispose();
     _scrollController.dispose();
-    _nameController.dispose();
-    _emailController.dispose();
-    _messageController.dispose();
     super.dispose();
   }
 
@@ -141,92 +57,63 @@ class _HomePageState extends State<HomePage>
     final size = MediaQuery.of(context).size;
     final bool isDesktop = size.width > 900;
 
-    return MouseRegion(
-      onHover: (event) {
-        setState(() {
-          _mousePos = event.localPosition;
-        });
-      },
-      child: Scaffold(
-        key: _scaffoldKey,
-        extendBodyBehindAppBar: true,
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(70),
-          child: _buildNavBar(isDesktop),
-        ),
-        drawer: !isDesktop ? _buildDrawer() : null,
-        floatingActionButton: _showBackToTop
-            ? FloatingActionButton(
-                onPressed: () {
-                  _scrollController.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 1000),
-                    curve: Curves.fastOutSlowIn,
-                  );
-                },
-                backgroundColor: Colors.white.withOpacity(0.2),
-                elevation: 0,
-                child: const Icon(Icons.arrow_upward, color: Colors.white),
-              )
-            : null,
-        body: Stack(
-          children: [
-            _buildBackground(size, isDesktop),
-            Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: isDesktop ? 1200 : double.infinity,
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(70),
+        child: _buildNavBar(isDesktop),
+      ),
+      body: Stack(
+        children: [
+          _buildBackground(size),
+          Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isDesktop ? 1200 : double.infinity,
+              ),
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isDesktop ? 20 : 15,
+                  vertical: 100,
                 ),
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isDesktop ? 20 : 15,
-                    vertical: 100,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeroSection(vm, isDesktop, key: _heroKey),
-                      const SizedBox(height: 50),
-                      _buildStatsSection(vm, isDesktop),
-                      const SizedBox(height: 100),
-                      _buildAboutMeSection(vm, isDesktop, key: _aboutKey),
-                      const SizedBox(height: 100),
-                      _buildSkillsSection(vm, isDesktop, key: _skillsKey),
-                      const SizedBox(height: 100),
-                      _buildExperienceSection(
-                        vm,
-                        isDesktop,
-                        key: _experienceKey,
-                      ),
-                      const SizedBox(height: 100),
-                      _buildProjectsSection(vm, isDesktop, key: _projectsKey),
-                      const SizedBox(height: 100),
-                      _buildAchievementsSection(
-                        vm,
-                        isDesktop,
-                        key: _achievementsKey,
-                      ),
-                      const SizedBox(height: 100),
-                      _buildEducationSection(vm, isDesktop, key: _educationKey),
-                      const SizedBox(height: 100),
-                      _buildGitHubSection(vm),
-                      const SizedBox(height: 100),
-                      _buildContactSection(vm, isDesktop, key: _contactKey),
-                      const SizedBox(height: 60),
-                      _buildFooter(vm),
-                    ],
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeroSection(vm, isDesktop, key: _heroKey),
+                    const SizedBox(height: 100),
+                    _buildAboutMeSection(vm, isDesktop, key: _aboutKey),
+                    const SizedBox(height: 100),
+                    _buildSkillsSection(vm, isDesktop, key: _skillsKey),
+                    const SizedBox(height: 100),
+                    _buildExperienceSection(vm, isDesktop, key: _experienceKey),
+                    const SizedBox(height: 100),
+                    _buildProjectsSection(vm, isDesktop, key: _projectsKey),
+                    const SizedBox(height: 100),
+                    _buildAchievementsSection(
+                      vm,
+                      isDesktop,
+                      key: _achievementsKey,
+                    ),
+                    const SizedBox(height: 100),
+                    _buildEducationSection(vm, isDesktop, key: _educationKey),
+                    const SizedBox(height: 100),
+                    _buildGitHubSection(vm),
+                    const SizedBox(height: 100),
+                    _buildContactSection(vm, isDesktop, key: _contactKey),
+                    const SizedBox(height: 60),
+                    _buildFooter(),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildBackground(Size size, bool isDesktop) {
+  Widget _buildBackground(Size size) {
     return Container(
       width: size.width,
       height: size.height,
@@ -239,24 +126,6 @@ class _HomePageState extends State<HomePage>
       ),
       child: Stack(
         children: [
-          if (isDesktop && _mousePos != null)
-            Positioned(
-              left: _mousePos!.dx - 150,
-              top: _mousePos!.dy - 150,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      Colors.white.withOpacity(0.08),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
           if (_bubbleController != null)
             AnimatedBuilder(
               animation: _bubbleController!,
@@ -364,7 +233,6 @@ class _HomePageState extends State<HomePage>
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       child: GlassContainer(
         height: 60,
-        width: double.infinity,
         borderRadius: 30,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -395,123 +263,11 @@ class _HomePageState extends State<HomePage>
               else
                 IconButton(
                   icon: const Icon(Icons.menu, color: Colors.white),
-                  onPressed: () {
-                    _scaffoldKey.currentState?.openDrawer();
-                  },
+                  onPressed: () {},
                 ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildDrawer() {
-    return Drawer(
-      backgroundColor: const Color(0xff57054e).withOpacity(0.9),
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Colors.transparent),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  "BAISHAKHEE",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                Container(width: 50, height: 2, color: Colors.white),
-              ],
-            ),
-          ),
-          _drawerItem("Introduction", () {
-            Navigator.pop(context);
-            _scrollTo(_heroKey);
-          }),
-          _drawerItem("About", () {
-            Navigator.pop(context);
-            _scrollTo(_aboutKey);
-          }),
-          _drawerItem("Skills", () {
-            Navigator.pop(context);
-            _scrollTo(_skillsKey);
-          }),
-          _drawerItem("Experience", () {
-            Navigator.pop(context);
-            _scrollTo(_experienceKey);
-          }),
-          _drawerItem("Projects", () {
-            Navigator.pop(context);
-            _scrollTo(_projectsKey);
-          }),
-          _drawerItem("Education", () {
-            Navigator.pop(context);
-            _scrollTo(_educationKey);
-          }),
-          _drawerItem("Contact", () {
-            Navigator.pop(context);
-            _scrollTo(_contactKey);
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _drawerItem(String title, VoidCallback onTap) => ListTile(
-    title: Text(
-      title,
-      style: const TextStyle(color: Colors.white, fontSize: 16),
-    ),
-    onTap: onTap,
-  );
-
-  Widget _buildStatsSection(PortfolioViewModel vm, bool isDesktop) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Wrap(
-        spacing: 20,
-        runSpacing: 20,
-        alignment: WrapAlignment.center,
-        children: vm.stats.map((stat) {
-          return GlassContainer(
-            width: isDesktop ? 250 : null,
-            height:
-                220, // Increased further to accommodate wrapping text safely
-            borderRadius: 15,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    stat["value"],
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    stat["label"],
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.white70,
-                      height: 1.4, // Better line height for wrapped text
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
       ),
     );
   }
@@ -542,48 +298,40 @@ class _HomePageState extends State<HomePage>
                     style: TextStyle(
                       fontSize: 24,
                       color: Colors.white,
-                      fontWeight: FontWeight.w300,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 10),
                   Text(
                     vm.name,
                     style: TextStyle(
-                      fontSize: isDesktop ? 70 : 45,
+                      fontSize: isDesktop ? 64 : 40,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
-                      height: 1.1,
                     ),
                   ),
-                  const SizedBox(height: 10),
                   Text(
                     vm.title,
-                    textAlign: isDesktop ? TextAlign.left : TextAlign.center,
-                    style: TextStyle(
-                      fontSize: isDesktop ? 22 : 18,
-                      color: Colors.tealAccent,
+                    style: const TextStyle(
+                      fontSize: 32,
+                      color: Colors.white70,
                       fontWeight: FontWeight.w500,
-                      letterSpacing: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 20),
                   Text(
                     vm.shortIntro,
                     textAlign: isDesktop ? TextAlign.left : TextAlign.center,
                     style: const TextStyle(
                       fontSize: 16,
+                      height: 1.5,
                       color: Colors.white,
-                      height: 1.6,
-                      fontWeight: FontWeight.w300,
                     ),
                   ),
                   const SizedBox(height: 40),
-                  Wrap(
-                    spacing: 20,
-                    runSpacing: 20,
-                    alignment: isDesktop
-                        ? WrapAlignment.start
-                        : WrapAlignment.center,
+                  Row(
+                    mainAxisAlignment: isDesktop
+                        ? MainAxisAlignment.start
+                        : MainAxisAlignment.center,
                     children: [
                       ElevatedButton(
                         onPressed: () => _scrollTo(_contactKey),
@@ -787,7 +535,6 @@ class _HomePageState extends State<HomePage>
         ),
         child: GlassContainer(
           height: null,
-          width: double.infinity,
           child: Padding(
             padding: const EdgeInsets.all(40.0),
             child: Text(
@@ -852,7 +599,6 @@ class _HomePageState extends State<HomePage>
   Widget _buildSkillCard(SkillCategory category, bool isDesktop) {
     return GlassContainer(
       height: isDesktop ? 350 : null,
-      width: double.infinity,
       borderRadius: 15,
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -957,7 +703,6 @@ class _HomePageState extends State<HomePage>
             padding: const EdgeInsets.only(bottom: 20),
             child: GlassContainer(
               height: null,
-              width: double.infinity,
               child: Padding(
                 padding: const EdgeInsets.all(25.0),
                 child: Column(
@@ -1064,15 +809,68 @@ class _HomePageState extends State<HomePage>
             crossAxisCount: isDesktop ? 2 : 1,
             crossAxisSpacing: 30,
             mainAxisSpacing: 30,
-            mainAxisExtent: isDesktop ? 650 : null,
+            mainAxisExtent: isDesktop ? 300 : null,
           ),
           itemCount: vm.projects.length,
           itemBuilder: (context, index) =>
-              ProjectCard(project: vm.projects[index], isDesktop: isDesktop),
+              _buildProjectCard(vm.projects[index], isDesktop),
         ),
       ],
     );
   }
+
+  Widget _buildProjectCard(project, bool isDesktop) => GlassContainer(
+    height: isDesktop ? 300 : null,
+    child: Padding(
+      padding: const EdgeInsets.all(25.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: isDesktop ? MainAxisSize.max : MainAxisSize.min,
+        children: [
+          FaIcon(FontAwesomeIcons.folder, color: Colors.white, size: 30),
+          const SizedBox(height: 20),
+          Text(
+            project.title,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: Text(
+              project.description,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Colors.white,
+                height: 1.5,
+                fontWeight: FontWeight.w300,
+              ),
+              overflow: TextOverflow.fade,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: project.techStack
+                .map<Widget>(
+                  (tech) => Text(
+                    tech,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _buildAchievementsSection(
     PortfolioViewModel vm,
@@ -1108,7 +906,7 @@ class _HomePageState extends State<HomePage>
             crossAxisCount: isDesktop ? 3 : 1,
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
-            mainAxisExtent: isDesktop ? 400 : null,
+            mainAxisExtent: isDesktop ? 300 : null,
           ),
           itemCount: vm.achievements.length,
           itemBuilder: (context, index) =>
@@ -1121,7 +919,6 @@ class _HomePageState extends State<HomePage>
   Widget _buildAchievementCard(achievement, bool isDesktop) {
     return GlassContainer(
       height: isDesktop ? 300 : null,
-      width: double.infinity,
       borderRadius: 15,
       child: Padding(
         padding: const EdgeInsets.all(25.0),
@@ -1197,7 +994,6 @@ class _HomePageState extends State<HomePage>
             padding: const EdgeInsets.only(bottom: 20),
             child: GlassContainer(
               height: null,
-              width: double.infinity,
               child: Padding(
                 padding: const EdgeInsets.all(25.0),
                 child: Column(
@@ -1255,17 +1051,16 @@ class _HomePageState extends State<HomePage>
     onTap: () => _launchURL(vm.githubUrl),
     child: GlassContainer(
       height: 150,
-      width: double.infinity,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const FaIcon(FontAwesomeIcons.github, size: 50, color: Colors.white),
-          const SizedBox(width: 30),
+          FaIcon(FontAwesomeIcons.github, size: 50, color: Colors.white),
+          SizedBox(width: 30),
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 "Visit my Open Source Garden",
                 style: TextStyle(
                   fontSize: 20,
@@ -1273,7 +1068,7 @@ class _HomePageState extends State<HomePage>
                   color: Colors.white,
                 ),
               ),
-              const Text(
+              Text(
                 "See more projects and contributions",
                 style: TextStyle(fontSize: 14, color: Colors.white70),
               ),
@@ -1339,32 +1134,6 @@ class _HomePageState extends State<HomePage>
                     ),
                     const SizedBox(height: 40),
                     _buildContactMethod(
-                      Icons.location_on,
-                      "Location: ${vm.location}",
-                      null,
-                    ),
-                    const SizedBox(height: 15),
-                    _buildContactMethod(
-                      Icons.work,
-                      "Availability: ${vm.availability}",
-                      null,
-                    ),
-                    const SizedBox(height: 15),
-                    _buildContactMethod(
-                      Icons.timer,
-                      "Notice Period: ${vm.noticePeriod}",
-                      null,
-                    ),
-                    const SizedBox(height: 15),
-                    _buildContactMethod(
-                      Icons.home_work,
-                      "Preference: ${vm.workPreference}",
-                      null,
-                    ),
-                    const SizedBox(height: 30),
-                    const Divider(color: Colors.white24),
-                    const SizedBox(height: 30),
-                    _buildContactMethod(
                       Icons.email,
                       vm.email,
                       () => _launchURL("mailto:${vm.email}"),
@@ -1385,14 +1154,14 @@ class _HomePageState extends State<HomePage>
                 ),
               ),
             if (isDesktop) const SizedBox(width: 60),
-            Expanded(child: _buildContactForm(vm)),
+            Expanded(child: _buildContactForm()),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildContactMethod(dynamic icon, String text, VoidCallback? onTap) {
+  Widget _buildContactMethod(dynamic icon, String text, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       child: Row(
@@ -1402,21 +1171,18 @@ class _HomePageState extends State<HomePage>
           else
             FaIcon(icon, color: Colors.tealAccent, size: 20),
           const SizedBox(width: 15),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            ),
+          Text(
+            text,
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildContactForm(PortfolioViewModel vm) {
+  Widget _buildContactForm() {
     return GlassContainer(
       height: null,
-      width: double.infinity,
       borderRadius: 20,
       child: Padding(
         padding: const EdgeInsets.all(30.0),
@@ -1435,19 +1201,11 @@ class _HomePageState extends State<HomePage>
             Row(
               children: [
                 Expanded(
-                  child: _buildInputField(
-                    "Your name *",
-                    "Enter your name",
-                    controller: _nameController,
-                  ),
+                  child: _buildInputField("Your name *", "Enter your name"),
                 ),
                 const SizedBox(width: 20),
                 Expanded(
-                  child: _buildInputField(
-                    "Your e-mail *",
-                    "Email Address",
-                    controller: _emailController,
-                  ),
+                  child: _buildInputField("Your e-mail *", "Email Address"),
                 ),
               ],
             ),
@@ -1468,13 +1226,12 @@ class _HomePageState extends State<HomePage>
               "Your message *",
               "Your message description",
               isLarge: true,
-              controller: _messageController,
             ),
             const SizedBox(height: 20),
             Row(
               children: [
                 Checkbox(
-                  value: true,
+                  value: false,
                   onChanged: (v) {},
                   side: const BorderSide(color: Colors.white38),
                 ),
@@ -1489,7 +1246,7 @@ class _HomePageState extends State<HomePage>
             const SizedBox(height: 30),
             Center(
               child: ElevatedButton(
-                onPressed: () => _sendEmail(vm.email),
+                onPressed: () {},
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white.withOpacity(0.1),
                   foregroundColor: Colors.white,
@@ -1521,12 +1278,7 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget _buildInputField(
-    String label,
-    String hint, {
-    bool isLarge = false,
-    TextEditingController? controller,
-  }) {
+  Widget _buildInputField(String label, String hint, {bool isLarge = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1548,7 +1300,6 @@ class _HomePageState extends State<HomePage>
             border: Border.all(color: Colors.white10),
           ),
           child: TextField(
-            controller: controller,
             maxLines: isLarge ? 5 : 1,
             decoration: InputDecoration(
               border: InputBorder.none,
@@ -1577,7 +1328,7 @@ class _HomePageState extends State<HomePage>
     ),
   );
 
-  Widget _buildFooter(PortfolioViewModel vm) => Column(
+  Widget _buildFooter() => Column(
     children: [
       const Divider(color: Colors.white24),
       const SizedBox(height: 20),
@@ -1589,259 +1340,15 @@ class _HomePageState extends State<HomePage>
       Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(
-            onPressed: () => _launchURL(vm.githubUrl),
-            icon: const FaIcon(
-              FontAwesomeIcons.github,
-              size: 16,
-              color: Colors.white70,
-            ),
-          ),
-          const SizedBox(width: 10),
-          IconButton(
-            onPressed: () => _launchURL(vm.linkedInUrl),
-            icon: const FaIcon(
-              FontAwesomeIcons.linkedin,
-              size: 16,
-              color: Colors.white70,
-            ),
-          ),
-          const SizedBox(width: 10),
-          IconButton(
-            onPressed: () => _launchURL("mailto:${vm.email}"),
-            icon: const Icon(Icons.email, size: 16, color: Colors.white70),
-          ),
+          FaIcon(FontAwesomeIcons.github, size: 16, color: Colors.white70),
+          const SizedBox(width: 20),
+          FaIcon(FontAwesomeIcons.linkedin, size: 16, color: Colors.white70),
+          const SizedBox(width: 20),
+          FaIcon(FontAwesomeIcons.twitter, size: 16, color: Colors.white70),
         ],
       ),
     ],
   );
-
-  void _launchURL(String url) async {
-    final Uri uri = Uri.parse(url);
-    if (!await launchUrl(uri)) {
-      debugPrint('Could not launch $url');
-    }
-  }
-}
-
-class ProjectCard extends StatefulWidget {
-  final ProjectModel project;
-  final bool isDesktop;
-
-  const ProjectCard({
-    super.key,
-    required this.project,
-    required this.isDesktop,
-  });
-
-  @override
-  State<ProjectCard> createState() => _ProjectCardState();
-}
-
-class _ProjectCardState extends State<ProjectCard> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedScale(
-        scale: _isHovered ? 1.02 : 1.0,
-        duration: const Duration(milliseconds: 200),
-        child: GlassContainer(
-          height: null,
-          width: double.infinity,
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(30.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const FaIcon(
-                          FontAwesomeIcons.folderOpen,
-                          color: Colors.tealAccent,
-                          size: 35,
-                        ),
-                        if (widget.project.githubUrl != null)
-                          IconButton(
-                            icon: const FaIcon(
-                              FontAwesomeIcons.github,
-                              color: Colors.white70,
-                              size: 20,
-                            ),
-                            onPressed: () =>
-                                _launchURL(widget.project.githubUrl!),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      widget.project.title,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    if (widget.project.role != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 5),
-                        child: Text(
-                          widget.project.role!,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.tealAccent,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 15),
-                    Text(
-                      widget.project.description,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: Colors.white,
-                        height: 1.6,
-                        fontWeight: FontWeight.w300,
-                      ),
-                    ),
-                    if (widget.project.features != null) ...[
-                      const SizedBox(height: 20),
-                      const Text(
-                        "Key Features:",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white70,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      ...widget.project.features!.map(
-                        (feature) => Padding(
-                          padding: const EdgeInsets.only(bottom: 5),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "▹ ",
-                                style: TextStyle(color: Colors.tealAccent),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  feature,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                    if (widget.project.result != null) ...[
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.star,
-                              color: Colors.amberAccent,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                widget.project.result!,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.white,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 25),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 8,
-                      children: widget.project.techStack
-                          .map<Widget>(
-                            (tech) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.tealAccent.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(5),
-                                border: Border.all(
-                                  color: Colors.tealAccent.withOpacity(0.3),
-                                ),
-                              ),
-                              child: Text(
-                                tech,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.tealAccent,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ],
-                ),
-              ),
-              if (widget.project.isFeatured == true)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: const BoxDecoration(
-                      color: Colors.tealAccent,
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(12),
-                        bottomLeft: Radius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      "FEATURED",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   void _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
