@@ -201,6 +201,24 @@ class PortfolioViewModel extends ChangeNotifier {
     ),
   ];
   final List<ProjectModel> projects = [
+      ProjectModel(
+      title: "SmartCount",
+      description:
+          "A productivity-focused counting application featuring customizable themes, Firebase integration, and ad monetization.",
+      techStack: ["Flutter", "Firebase", "AdMob", "Play Store"],
+    ),
+    ProjectModel(
+      title: "OlChemetABC",
+      description:
+          "An educational platform dedicated to Ol Chiki and Santali learning, including pronunciation guides, lessons, and vocabulary building.",
+      techStack: ["Flutter", "Dart", "Audio Playback", "Educational UI"],
+    ),
+    ProjectModel(
+      title: "Gitaverse",
+      description:
+          "A spiritual education app for learning Bhagavad Gita with multilingual support and comprehensive verse-by-verse content.",
+      techStack: ["Flutter", "Multilingual Support", "Spiritual Education"],
+    ),
     ProjectModel(
       title: "Flutter Campaign Media Player",
       description:
